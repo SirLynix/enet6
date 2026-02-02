@@ -1025,7 +1025,7 @@ namespace ENet6
         public const uint timeoutLimit = 32;
         public const uint timeoutMinimum = 5000;
         public const uint timeoutMaximum = 30000;
-        public const uint version = (6 << 16) | (0 << 8) | (2);
+        public const uint version = (6 << 16) | (1 << 8) | (2);
 
         public static uint Time
         {
