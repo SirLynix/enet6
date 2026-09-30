@@ -23,6 +23,7 @@ jobs:
         - { runner: windows-latest, plat: windows,  arch: x64 }
         - { runner: windows-latest, plat: windows,  arch: arm64 }
         - { runner: windows-latest, plat: mingw,    arch: x86_64, msys_arch: x86_64, msys_msystem: mingw64 }
+        - { runner: ubuntu-latest,  plat: linux,    arch: arm64 }
         - { runner: ubuntu-latest,  plat: linux,    arch: x86_64 }
         - { runner: ubuntu-latest,  plat: android,  arch: x86 }
         - { runner: ubuntu-latest,  plat: android,  arch: x86_64 }
