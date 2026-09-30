@@ -29,10 +29,10 @@ jobs:
         - { runner: ubuntu-latest,  plat: android,  arch: x86_64 }
         - { runner: ubuntu-latest,  plat: android,  arch: armeabi-v7a }
         - { runner: ubuntu-latest,  plat: android,  arch: arm64-v8a }
-        - { runner: macos-14,       plat: macosx,   arch: x86_64 }
-        - { runner: macos-14,       plat: macosx,   arch: arm64 }
-        - { runner: macos-14,       plat: iphoneos, arch: x86_64 }
-        - { runner: macos-14,       plat: iphoneos, arch: arm64 }
+        - { runner: macos-latest,   plat: macosx,   arch: x86_64 }
+        - { runner: macos-latest,   plat: macosx,   arch: arm64 }
+        - { runner: macos-latest,   plat: iphoneos, arch: x86_64 }
+        - { runner: macos-latest,   plat: iphoneos, arch: arm64 }
         mode: [debug, release]
         kind: [shared, static]
     defaults:
