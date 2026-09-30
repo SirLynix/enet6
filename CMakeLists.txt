@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(enet6 VERSION 6.1.3 LANGUAGES C)
+project(enet6 VERSION 6.1.4 LANGUAGES C)
 
 include(CheckFunctionExists)
 include(CheckStructHasMember)
