@@ -390,7 +390,7 @@ enet_address_get_host_ip (const ENetAddress * address, char * name, size_t nameL
 {
     enum MaxSize
     { 
-        MS_PortPart = 1 + 4,                    /* semicolon + 4 digits */
+        MS_PortPart = 1 + 5,                    /* colon + up to 5 digits (65535) */
 
         MS_IPv4 = 4 * 3 + 3 + 1,                /* 4 * 3 digits plus three dots plus end of string character */
         MS_IPv4MappedIPv6 = 7 + 4 * 3 + 3 + 1,  /* prefix + 4 * 3 digits plus three dots plus end of string character */
