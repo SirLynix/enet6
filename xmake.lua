@@ -3,7 +3,7 @@ add_rules("mode.debug", "mode.release")
 set_project("enet-ipv6")
 set_version("6.1.4")
 
-if not is_plat("windows", "mingw") then
+if not is_plat("windows", "mingw", "msys") then
     -- detect features on Unix platforms
     option("fcntl", { cincludes = {"fcntl.h", "unistd.h"}, cfuncs = "fcntl", defines = "HAS_FCNTL=1"})
     option("poll", { cincludes = {"poll.h"}, cfuncs = "poll", defines = "HAS_POLL=1"})
@@ -45,7 +45,7 @@ target("enet6", function ()
         add_shflags("-Wl,-z,common-page-size=16384", {force = true})
     end
 
-    if is_plat("windows", "mingw") then
+    if is_plat("windows", "mingw", "msys") then
         add_syslinks("winmm", "ws2_32", { public = true })
     else
         add_options(
