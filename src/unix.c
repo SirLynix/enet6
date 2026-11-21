@@ -74,6 +74,7 @@ enet_address_from_sock_addr4(ENetAddress * address, const struct sockaddr_in* so
 {
     address->type = ENET_ADDRESS_TYPE_IPV4;
     address->port = ENET_NET_TO_HOST_16(sockAddr->sin_port);
+    address->scopeId = 0;
 
     memcpy(&address->host.v4[0], &sockAddr->sin_addr.s_addr, 4 * sizeof(enet_uint8));
 
@@ -87,6 +88,7 @@ enet_address_from_sock_addr6(ENetAddress * address, const struct sockaddr_in6* s
 
     address->type = ENET_ADDRESS_TYPE_IPV6;
     address->port = ENET_NET_TO_HOST_16(sockAddr->sin6_port);
+    address->scopeId = (enet_uint32) sockAddr->sin6_scope_id;
 
     for (i = 0; i < 8; ++i)
         address->host.v6[i] = ((enet_uint16) sockAddr->sin6_addr.s6_addr[i * 2]) << 8 | sockAddr->sin6_addr.s6_addr[i * 2 + 1];
@@ -158,6 +160,7 @@ enet_address_to_sock_addr(const ENetAddress * address, void * sockAddr)
             memset(socketAddress, 0, sizeof(struct sockaddr_in6));
             socketAddress->sin6_family = AF_INET6;
             socketAddress->sin6_port = ENET_HOST_TO_NET_16(address->port);
+            socketAddress->sin6_scope_id = address->scopeId;
 
             for (i = 0; i < 8; ++i)
             {

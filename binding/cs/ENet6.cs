@@ -74,13 +74,15 @@ namespace ENet6
         IPv6 = 2
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    [StructLayout(LayoutKind.Explicit, Size = 28)]
     internal struct ENetAddress
     {
         [FieldOffset(0)]
         public AddressType type;
         [FieldOffset(4)]
         public ushort port;
+        [FieldOffset(24)]
+        public uint scopeId;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -178,6 +180,20 @@ namespace ENet6
             set
             {
                 nativeAddress.type = value;
+            }
+        }
+
+        /// <summary>IPv6 scope (zone) id: the interface index for link-local addresses, 0 otherwise.</summary>
+        public uint ScopeId
+        {
+            get
+            {
+                return nativeAddress.scopeId;
+            }
+
+            set
+            {
+                nativeAddress.scopeId = value;
             }
         }
 

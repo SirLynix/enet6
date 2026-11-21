@@ -1,7 +1,7 @@
 add_rules("mode.debug", "mode.release")
 
 set_project("enet-ipv6")
-set_version("6.1.4")
+set_version("6.2.0")
 
 if not is_plat("windows", "mingw", "msys") then
     -- detect features on Unix platforms

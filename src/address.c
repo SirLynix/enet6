@@ -50,6 +50,32 @@ static unsigned int _parseHex ( const char** pchCursor )
  
  
  
+/* Parse a decimal IPv6 scope id (the part after '%'). Returns false if it is */
+/* empty or does not fit in 32 bits. */
+static int _parseScopeId ( const char** pchCursor, enet_uint32* pnScopeId )
+{
+    enet_uint32 nVal = 0;
+    const char* pszTextBefore = *pchCursor;
+    char chNow;
+    while ( chNow = **pchCursor, chNow >= '0' && chNow <= '9' )
+    {
+        enet_uint32 nDigit = (enet_uint32) ( chNow - '0' );
+        if ( nVal > ( 0xFFFFFFFFu - nDigit ) / 10 )
+            return 0;   /* overflow */
+
+        nVal = nVal * 10 + nDigit;
+        ++*pchCursor;
+    }
+
+    if ( pszTextBefore == *pchCursor )
+        return 0;
+
+    *pnScopeId = nVal;
+    return 1;
+}
+
+
+
 /* Parse a textual IPv4 or IPv6 address, optionally with port, into a binary */
 /* array (for the address, in network order), and an optionally provided port. */
 /* Also, indicate which of those forms (4 or 6) was parsed.  Return true on */
@@ -60,8 +86,10 @@ static unsigned int _parseHex ( const char** pchCursor )
 /* informations.  If we request port, but there is no port part, then nPort will */
 /* be set to 0.  There may be no whitespace leading or internal (though this may */
 /* be used to terminate a successful parse. */
+/* IPv6 addresses may have a numeric scope id (fe80::1%12, [fe80::1%12]:1234), */
+/* stored in pnScopeId (0 if there is none). pnScopeId may be NULL. */
 /* Note:  the binary address and integer port are in network order. */
-static int ParseIPv4OrIPv6 ( const char** ppszText, enet_uint8* abyAddr, enet_uint16* pnPort, int* pbIsIPv6 )
+static int ParseIPv4OrIPv6 ( const char** ppszText, enet_uint8* abyAddr, enet_uint16* pnPort, int* pbIsIPv6, enet_uint32* pnScopeId )
 {
     unsigned char* abyAddrLocal;
     unsigned char abyDummyAddr[16];
@@ -97,6 +125,9 @@ static int ParseIPv4OrIPv6 ( const char** ppszText, enet_uint8* abyAddr, enet_ui
     /* we figured out this much so far.... */
     if ( NULL != pbIsIPv6 )
         *pbIsIPv6 = bIsIPv6local;
+
+    if ( NULL != pnScopeId )
+        *pnScopeId = 0;
  
     /* especially for IPv6 (where we will be decompressing and validating) */
     /* we really need to have a working buffer even if the caller didn't */
@@ -212,7 +243,7 @@ static int ParseIPv4OrIPv6 ( const char** ppszText, enet_uint8* abyAddr, enet_ui
                     const char* pszTextlocal = pszTextBefore;   /* back it up */
                     unsigned char abyAddrlocal[16];
                     int bIsIPv6local;
-                    int bParseResultlocal = ParseIPv4OrIPv6 ( &pszTextlocal, abyAddrlocal, NULL, &bIsIPv6local );
+                    int bParseResultlocal = ParseIPv4OrIPv6 ( &pszTextlocal, abyAddrlocal, NULL, &bIsIPv6local, NULL );
                     *ppszText = pszTextlocal;   /* success or fail, remember the terminating char */
                     if ( ! bParseResultlocal || bIsIPv6local )  /* must parse and must be ipv4 */
                         return 0;
@@ -259,6 +290,18 @@ static int ParseIPv4OrIPv6 ( const char** ppszText, enet_uint8* abyAddr, enet_ui
                 return 0;
         }
  
+        /* optional scope id */
+        if ( '%' == **ppszText )
+        {
+            enet_uint32 nScopeId;
+            ++(*ppszText);  /* past the percent sign */
+            if ( ! _parseScopeId ( ppszText, &nScopeId ) )
+                return 0;
+
+            if ( NULL != pnScopeId )
+                *pnScopeId = nScopeId;
+        }
+
         /* close bracket */
         if ( NULL != pchOpenBracket )
         {
@@ -307,6 +350,11 @@ int enet_address_equal_host(const ENetAddress * firstAddress, const ENetAddress 
     else if (firstAddress->type == ENET_ADDRESS_TYPE_IPV6)
     {
         if (memcmp(&firstAddress->host.v6[0], &secondAddress->host.v6[0], 8 * sizeof(enet_uint16)) != 0)
+            return 0;
+
+        /* an unspecified (0) scope id matches any scope id */
+        if (firstAddress->scopeId != 0 && secondAddress->scopeId != 0 &&
+            firstAddress->scopeId != secondAddress->scopeId)
             return 0;
     }
 
@@ -391,6 +439,7 @@ enet_address_get_host_ip (const ENetAddress * address, char * name, size_t nameL
     enum MaxSize
     { 
         MS_PortPart = 1 + 5,                    /* colon + up to 5 digits (65535) */
+        MS_ScopePart = 1 + 10,                  /* percent sign + up to 10 digits (4294967295) */
 
         MS_IPv4 = 4 * 3 + 3 + 1,                /* 4 * 3 digits plus three dots plus end of string character */
         MS_IPv4MappedIPv6 = 7 + 4 * 3 + 3 + 1,  /* prefix + 4 * 3 digits plus three dots plus end of string character */
@@ -398,7 +447,7 @@ enet_address_get_host_ip (const ENetAddress * address, char * name, size_t nameL
 
         MS_IPv4WithPort = MS_IPv4 + MS_PortPart,
         MS_IPv4MappedIPv6WithPort = MS_IPv4MappedIPv6 + MS_PortPart + 2, /* plus two brackets */
-        MS_IPv6WithPort = MS_IPv6 + MS_PortPart + 2,                     /* plus two brackets */
+        MS_IPv6WithPort = MS_IPv6 + MS_ScopePart + MS_PortPart + 2,      /* plus scope id and two brackets */
     };
 
     if (address -> type == ENET_ADDRESS_TYPE_IPV4)
@@ -500,6 +549,12 @@ enet_address_get_host_ip (const ENetAddress * address, char * name, size_t nameL
                 p += advance;
             }
 
+            if (address->scopeId != 0)
+            {
+                advance = sprintf(p, "%%%lu", (unsigned long) address->scopeId);
+                p += advance;
+            }
+
             if (address->port != 0)
             {
                 *p++ = ']';
@@ -530,9 +585,12 @@ enet_address_set_host_ip (ENetAddress * address, const char * name)
     int isIPv6;
     int i;
     enet_uint16 port;
+    enet_uint32 scopeId;
 
-    if (!ParseIPv4OrIPv6(&name, result, &port, &isIPv6))
+    if (!ParseIPv4OrIPv6(&name, result, &port, &isIPv6, &scopeId))
         return -1;
+
+    address->scopeId = scopeId;
 
     if (isIPv6)
     {
@@ -559,6 +617,7 @@ enet_address_set_host_ip (ENetAddress * address, const char * name)
 void enet_address_build_any(ENetAddress * address, ENetAddressType type)
 {
     address->type = type;
+    address->scopeId = 0;
 
     switch (type)
     {
@@ -584,6 +643,7 @@ void enet_address_build_any(ENetAddress * address, ENetAddressType type)
 void enet_address_build_loopback(ENetAddress * address, ENetAddressType type)
 {
     address->type = type;
+    address->scopeId = 0;
 
     switch (type)
     {
@@ -618,6 +678,7 @@ void enet_address_convert_ipv6(ENetAddress * address)
     {
         /* Turn into IPv4-mapped IPv6 */
         address->type = ENET_ADDRESS_TYPE_IPV6;
+        address->scopeId = 0;
         memcpy(&ipv4[0], &address->host.v4[0], 4 * sizeof(enet_uint8)); /* save IPv4 before modifying the IPv6 because of the union */
 
         address->host.v6[0] = 0;

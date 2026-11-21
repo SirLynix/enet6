@@ -19,8 +19,8 @@
 #include "enet6/callbacks.h"
 
 #define ENET_VERSION_MAJOR 6
-#define ENET_VERSION_MINOR 1
-#define ENET_VERSION_PATCH 4
+#define ENET_VERSION_MINOR 2
+#define ENET_VERSION_PATCH 0
 #define ENET_VERSION_CREATE(major, minor, patch) (((major)<<16) | ((minor)<<8) | (patch))
 #define ENET_VERSION_GET_MAJOR(version) (((version)>>16)&0xFF)
 #define ENET_VERSION_GET_MINOR(version) (((version)>>8)&0xFF)
@@ -81,6 +81,10 @@ typedef enum _ENetAddressType
  *
  * The host must be specified in network byte-order, and the port must be in host 
  * byte-order.
+ *
+ * scopeId is the IPv6 scope (zone) id: the index of the network interface used to
+ * reach a link-local address such as fe80::1%12. It must be 0 for IPv4 addresses and
+ * for IPv6 addresses that do not need a scope (global and unique-local ones).
  */
 typedef struct _ENetAddress
 {
@@ -91,6 +95,7 @@ typedef struct _ENetAddress
        enet_uint8 v4[4];
        enet_uint16 v6[8];
    } host;
+   enet_uint32 scopeId;
 } ENetAddress;
 
 #define ENET_PORT_ANY       0
@@ -553,6 +558,8 @@ ENET_API int        enet_socketset_select (ENetSocket, ENetSocketSet *, ENetSock
 */
 
 /** Compares two addresses (only the host part)
+
+    IPv6 scope ids are only compared when both addresses have a non-zero one.
     @param firstAddress first address to compare
     @param secondAddress second address to compare
     @retval 1 if addresses are equal
@@ -593,6 +600,9 @@ ENET_API int enet_address_is_loopback(const ENetAddress * address);
 
 /** Attempts to parse the printable form of the IP address in the parameter hostName
     and sets the host field in the address parameter if successful.
+
+    IPv6 addresses may carry a numeric scope id, such as fe80::1%12 or [fe80::1%12]:1234.
+    Interface names (fe80::1%eth0) are not accepted here, use enet_address_set_host for those.
     @param address destination to store the parsed IP address
     @param hostName IP address to parse
     @retval 0 on success
@@ -612,7 +622,7 @@ ENET_API int enet_address_set_host_ip (ENetAddress * address, const char * hostN
 */
 ENET_API int enet_address_set_host (ENetAddress * address, ENetAddressType type, const char * hostName);
 
-#define ENET_ADDRESS_MAX_LENGTH 40 /*full IPv6 addresses take 39 characters + 1 null byte */
+#define ENET_ADDRESS_MAX_LENGTH 51 /* full IPv6 addresses take 39 characters + 11 for a %scope id + 1 null byte */
 
 /** Gives the printable form of the IP address specified in the address parameter.
     @param address    address printed
