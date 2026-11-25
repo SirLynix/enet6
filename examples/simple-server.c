@@ -1,5 +1,6 @@
 #include <enet6/enet.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
@@ -45,7 +46,8 @@ int main(int argc, char **argv)
             {
                 case ENET_EVENT_TYPE_CONNECT:
                 {
-                    enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH);
+                    if (enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH) != 0)
+                        strcpy(addressBuffer, "<unknown>");
                     printf("(Server) We got a new connection from %s\n", addressBuffer);
                     break;
                 }
@@ -59,7 +61,8 @@ int main(int argc, char **argv)
                 case ENET_EVENT_TYPE_DISCONNECT:
                 case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
                 {
-                    enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH);
+                    if (enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH) != 0)
+                        strcpy(addressBuffer, "<unknown>");
                     printf("Client %s disconnected%s.\n", addressBuffer, (event.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT) ? " (timeout)" : "");
                     break;
                 }

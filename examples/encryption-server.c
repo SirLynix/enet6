@@ -1,5 +1,6 @@
 #include <enet6/enet.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -112,7 +113,8 @@ int main(int argc, char **argv)
                 {
                     encryption_data* peerData;
 
-                    enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH);
+                    if (enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH) != 0)
+                        strcpy(addressBuffer, "<unknown>");
                     printf("(Server) We got a new connection from %s using %u as encryption key\n", addressBuffer, event.data);
 
                     peerData = (encryption_data*) malloc(sizeof(encryption_data));
@@ -131,7 +133,8 @@ int main(int argc, char **argv)
                 case ENET_EVENT_TYPE_DISCONNECT:
                 case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
                 {
-                    enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH);
+                    if (enet_address_get_host_ip(&event.peer->address, addressBuffer, ENET_ADDRESS_MAX_LENGTH) != 0)
+                        strcpy(addressBuffer, "<unknown>");
                     printf("Client %s disconnected%s.\n", addressBuffer, (event.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT) ? " (timeout)" : "");
                     free(event.peer->data);
                     break;

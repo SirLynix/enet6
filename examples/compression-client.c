@@ -26,7 +26,8 @@ int main(int argc, char **argv)
     enet_address_set_host(&address, ENET_ADDRESS_TYPE_ANY, "localhost");
     address.port = 1234;
 
-    enet_address_get_host_ip(&address, addressBuffer, ENET_ADDRESS_MAX_LENGTH);
+    if (enet_address_get_host_ip(&address, addressBuffer, ENET_ADDRESS_MAX_LENGTH) != 0)
+        strcpy(addressBuffer, "<unknown>");
     printf("Connecting to %s...\n", addressBuffer);
 
     /* Create a non-listening host using enet_host_create */

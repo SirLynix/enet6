@@ -116,7 +116,8 @@ enet_address_to_sock_addr(const ENetAddress * address, void * sockAddr)
             memset(socketAddress, 0, sizeof(struct sockaddr_in6));
             socketAddress->sin6_family = AF_INET6;
             socketAddress->sin6_port = ENET_HOST_TO_NET_16(address->port);
-            socketAddress->sin6_scope_id = address->scopeId;
+            if (enet_address_is_link_local(address))
+                socketAddress->sin6_scope_id = address->scopeId;
 
             for (i = 0; i < 8; ++i)
             {

@@ -1,11 +1,16 @@
 ENet6 6.2.0 (unreleased):
 
 * Added IPv6 scope id support (ENetAddress::scopeId), so link-local addresses such as fe80::1%12 can be used.
-  enet_address_set_host_ip parses a numeric %scope, enet_address_get_host_ip prints it, and addresses
-  with different non-zero scope ids no longer compare equal.
+  enet_address_set_host_ip parses a numeric %scope, enet_address_get_host_ip prints it, and link-local
+  addresses with different non-zero scope ids no longer compare equal. The scope id is ignored for
+  non link-local addresses. A peer's address takes the scope id of the packets it receives.
+* Added enet_address_is_link_local
 * ABI break: sizeof(ENetAddress) grew from 24 to 28 bytes (this also shifts the layout of ENetPeer and
   ENetHost). Applications must be recompiled against the new headers.
-* ENET_ADDRESS_MAX_LENGTH raised from 40 to 51 to fit a scope id.
+* ENET_ADDRESS_MAX_LENGTH raised from 40 to 59: it now fits every string enet_address_get_host_ip can
+  produce, including a scope id and a port.
+* enet_address_set_host_ip now fails on trailing text after the address (it used to be ignored)
+* Fixed enet_address_equal_host comparing ports, which stopped ENetHost::duplicatePeers from being enforced
 
 ENet6 6.1.1 (unreleased):
 

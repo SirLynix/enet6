@@ -1173,6 +1173,7 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
     {
        peer -> address.host = host -> receivedAddress.host;
        peer -> address.port = host -> receivedAddress.port;
+       peer -> address.scopeId = host -> receivedAddress.scopeId;
        peer -> incomingDataTotal += host -> receivedDataLength;
     }
     

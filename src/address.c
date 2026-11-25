@@ -339,9 +339,6 @@ int enet_address_equal_host(const ENetAddress * firstAddress, const ENetAddress 
     if (firstAddress->type != secondAddress->type)
         return 0;
 
-    if (firstAddress->port != secondAddress->port)
-        return 0;
-
     if (firstAddress->type == ENET_ADDRESS_TYPE_IPV4)
     {
         if (memcmp(&firstAddress->host.v4[0], &secondAddress->host.v4[0], 4*sizeof(enet_uint8)) != 0)
@@ -352,8 +349,9 @@ int enet_address_equal_host(const ENetAddress * firstAddress, const ENetAddress 
         if (memcmp(&firstAddress->host.v6[0], &secondAddress->host.v6[0], 8 * sizeof(enet_uint16)) != 0)
             return 0;
 
-        /* an unspecified (0) scope id matches any scope id */
-        if (firstAddress->scopeId != 0 && secondAddress->scopeId != 0 &&
+        /* scope ids only mean something for link-local addresses; an unspecified (0) one matches any */
+        if (enet_address_is_link_local(firstAddress) &&
+            firstAddress->scopeId != 0 && secondAddress->scopeId != 0 &&
             firstAddress->scopeId != secondAddress->scopeId)
             return 0;
     }
@@ -408,6 +406,24 @@ enet_address_is_broadcast(const ENetAddress * address)
     {
         return 1;
     }
+
+    return 0;
+}
+
+int
+enet_address_is_link_local(const ENetAddress * address)
+{
+    if (address->type != ENET_ADDRESS_TYPE_IPV6)
+        return 0;
+
+    /* fe80::/10 link-local unicast */
+    if ((address->host.v6[0] & 0xFFC0) == 0xFE80)
+        return 1;
+
+    /* ff01::/16 interface-local and ff02::/16 link-local multicast (any flags) */
+    if ((address->host.v6[0] & 0xFF00) == 0xFF00 &&
+        ((address->host.v6[0] & 0x000F) == 0x1 || (address->host.v6[0] & 0x000F) == 0x2))
+        return 1;
 
     return 0;
 }
@@ -549,7 +565,7 @@ enet_address_get_host_ip (const ENetAddress * address, char * name, size_t nameL
                 p += advance;
             }
 
-            if (address->scopeId != 0)
+            if (address->scopeId != 0 && enet_address_is_link_local(address))
             {
                 advance = sprintf(p, "%%%lu", (unsigned long) address->scopeId);
                 p += advance;
@@ -588,6 +604,10 @@ enet_address_set_host_ip (ENetAddress * address, const char * name)
     enet_uint32 scopeId;
 
     if (!ParseIPv4OrIPv6(&name, result, &port, &isIPv6, &scopeId))
+        return -1;
+
+    /* the whole string must be an address: reject trailing text such as "fe80::1%12eth0" */
+    if (*name != '\0')
         return -1;
 
     address->scopeId = scopeId;
